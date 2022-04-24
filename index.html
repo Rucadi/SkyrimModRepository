@@ -112,15 +112,13 @@
     </footer>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/webtorrent/1.8.13/webtorrent.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/webtorrent/1.6.0/webtorrent.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/showdown/2.1.0/showdown.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/simple-peer/9.11.1/simplepeer.min.js"></script>
     <script>
     const announceList = [
         ["wss://tracker.btorrent.xyz"],
-        ["wss://tracker.openwebtorrent.com"],
-        ["ws://160.20.145.79:8000"]
-    ];
+        ["wss://tracker.openwebtorrent.com"]    ];
 
     globalThis.WEBTORRENT_ANNOUNCE = announceList
         .map(function(arr) {
@@ -130,56 +128,15 @@
             return url.indexOf("wss://") === 0 || url.indexOf("ws://") === 0;
         });
 
-    const rtcConfig = {
-        iceServers: [{
-                urls: "turn:openrelay.metered.ca:80",
-                username: "openrelayproject",
-                credential: "openrelayproject",
-            },
-            {
-                urls: "turn:openrelay.metered.ca:443",
-                username: "openrelayproject",
-                credential: "openrelayproject",
-            },
-            {
-                urls: "turn:openrelay.metered.ca:443?transport=tcp",
-                username: "openrelayproject",
-                credential: "openrelayproject",
-            },
-            {
-                urls: "turn:openrelay.metered.ca:80?transport=tcp",
-                username: "openrelayproject",
-                credential: "openrelayproject",
-            },
-            {
-                urls: "stun:openrelay.metered.ca:80",
-            },
-            {
-                urls: 'stun:stun.l.google.com:19302'
-            }, 
-            {
-                urls: 'stun:global.stun.twilio.com:3478?transport=udp'
-            }
-        ],
-        sdpSemantics: 'unified-plan',
-        iceCandidatePoolsize: 1
-    }
 
-    if (!WebTorrent.WEBRTC_SUPPORT) {
-        util.error('This browser is unsupported. Please use a browser with WebRTC support.')
-    }
-
-    const client = new WebTorrent({
-        tracker: {
-            rtcConfig: {
-                ...SimplePeer.config,
-                ...rtcConfig,
-            },
-        },
-    });
-
-    var magnet =
-        "a5c3e24d76072ea96d5b231357eaab72bc0e00f7";
+        const client = new WebTorrent({
+      tracker: {
+        rtcConfig: {
+          ...SimplePeer.config,
+        }
+      }
+    })
+    var magnet = "62a96ecf77871ad57bd594305ca59cea13210135";
 
 
     function getTorrentFile(torrent, fileName) {
