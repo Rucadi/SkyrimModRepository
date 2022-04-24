@@ -115,6 +115,8 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/webtorrent/1.6.0/webtorrent.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/showdown/2.1.0/showdown.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/simple-peer/9.11.1/simplepeer.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.9.1/jszip.min.js"></script>
+
     <script>
     const announceList = [
         ["wss://tracker.btorrent.xyz"],
@@ -154,7 +156,7 @@
         card_html += '<div class="card-body">';
         card_html += '<h5 class="card-title">' + version.name + " " + version.version + '</h5>';
         card_html += '<p class="card-text" >' + version.description + '</p>';
-        card_html += '<div id="d73cd771a0e7b400fa5927394aeda5bc9452ebee"> <a href="#" onclick="handleTorrentDownload(\'d73cd771a0e7b400fa5927394aeda5bc9452ebee\')" class="btn btn-primary d-flex justify-content-center flex-nowrap" style="  margin-top: 10px; margin-bottom: 10px;">download</a></div>';
+        card_html += '<div id="'+version.hash+'"> <a href="#" onclick="handleTorrentDownload("'+version.hash+'"") class="btn btn-primary d-flex justify-content-center flex-nowrap" style="  margin-top: 10px; margin-bottom: 10px;">download</a></div>';
         card_html += '<a target="_blank" href="https://instant.io/#' + version.hash + '" class="btn btn-primary d-flex justify-content-center flex-nowrap" style="  margin-top: 10px; margin-bottom: 10px;">magnet</a>';
         card_html += '</div> </div>';
         return card_html;
@@ -259,17 +261,17 @@
         var a = document.createElement("a");
         document.body.appendChild(a);
         a.style = "display: none";
-        return function(torrent) {
-            torrent.getBlobURL((err, url) => {
+        return function(url, fileName) {
                 a.href = url;
                 a.download = fileName;
                 a.click();
                 window.URL.revokeObjectURL(url);
-            });
         }
     })();
 
     function handleTorrentDownload(hash) {
+
+      document.getElementById(hash).innerHTML = "<div class='progress'> <div class='progress-bar'  role='progressbar' style='width: " + 0 + "%;'' aria-valuenow='" + 0 + "' aria-valuemin='0' aria-valuemax='100'>" + 0 + "</div> </div>"
         function onTorrentAdded(torrent) {
 
             console.log("ontorrentadd");
@@ -278,7 +280,7 @@
                 const progress = (100 * torrent.progress).toFixed(1)
 
 
-                if (torrent.done)
+                if (!torrent.done)
                     document.getElementById(hash).innerHTML = "<div class='progress'> <div class='progress-bar'  role='progressbar' style='width: " + progress + "%;'' aria-valuenow='" + progress + "' aria-valuemin='0' aria-valuemax='100'>" + progress + "</div> </div>"
 
                 console.log(
@@ -289,9 +291,28 @@
                 )
             }
 
+            encapsulateStr = (str) => '\'' + str + '\'' 
             function onDone() {
                 console.log("OnDone");
-                document.getElementById(hash).innerHTML = '<a href="#" onclick="saveData(' + torrent + ')" class="btn btn-primary d-flex justify-content-center flex-nowrap" style="  margin-top: 10px; margin-bottom: 10px;">Save To Disk</a></div>';
+
+                if(torrent.files.length > 1) {
+                    var zip = new JSZip();
+                    for (var i = 0; i < torrent.files.length; i++) {
+                        zip.file(torrent.files[i].name, torrent.files[i].getBlob());
+                    }
+                    zip.generateAsync({type:"blob"}).then(function(content) 
+                    {
+                      document.getElementById(hash).innerHTML = '<a href="#" onclick="saveData(' + encapsulateStr(window.URL.createObjectURL(content)) + ','+ encapsulateStr(torrent.infoHash + ".zip")+')" class="btn btn-primary d-flex justify-content-center flex-nowrap" style="  margin-top: 10px; margin-bottom: 10px;">Save To Disk</a></div>';
+                    });
+                } else {
+                  torrent.files[0].getBlobURL((err, url) => {
+                    document.getElementById(hash).innerHTML = '<a href="#" onclick="saveData(' + encapsulateStr(url) + ','+ encapsulateStr(torrent.name)+')" class="btn btn-primary d-flex justify-content-center flex-nowrap" style="  margin-top: 10px; margin-bottom: 10px;">Save To Disk</a></div>';
+                  });
+
+                  
+
+                }
+
             }
             torrent.on('download', throttle(updateSpeed, 250))
             torrent.on('done', () => onDone());
