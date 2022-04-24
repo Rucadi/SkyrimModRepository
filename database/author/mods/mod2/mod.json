@@ -1,0 +1,12 @@
+{
+    "name": "SkyrimModAlternatives Example",
+    "versions": [
+        {
+            "game_version" : "AE",
+            "version": "1.0.0",
+            "name": "My super name",
+            "description": "My super mod description",
+            "hash": "3d5b8aabdf04de29191469039f3043c0acef33a3"
+        }
+    ]
+}
