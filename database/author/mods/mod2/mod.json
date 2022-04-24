@@ -1,12 +1,32 @@
 {
     "name": "SkyrimModAlternatives Example",
+    "NSFW": false,
+    "description": "global description of the mod",
+    "permission": "None",
+    "type": "Clothing",
     "versions": [
         {
-            "game_version" : "AE",
-            "version": "1.0.0",
             "name": "My super name",
+            "gameVersion" : "AE",
+            "version": "1.0.0",
             "description": "My super mod description",
-            "hash": "3d5b8aabdf04de29191469039f3043c0acef33a3"
+            "hash": "ed79b12720cab672e633f1eda0f1dd7a64e99980",
+            "NexusId" : "1234",
+            "NexusFileId" : "1234",
+            "LoversId" : "5678",
+            "LoversFileId" : "5678"
+
+        },
+        {
+            "name": "My super 2",
+            "gameVersion" : "SE",
+            "version": "1.0.0",
+            "description": "My super mod description",
+            "hash": "ed79b12720cab672e633f1eda0f1dd7a64e99980",
+            "NexusId" : "1234",
+            "NexusFileId" : "1234",
+            "LoversId" : "5678",
+            "LoversFileId" : "5678"
         }
     ]
 }
