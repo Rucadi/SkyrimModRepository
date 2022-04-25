@@ -138,10 +138,11 @@
         }
       }
     })
-    var magnet = "62a96ecf77871ad57bd594305ca59cea13210135";
+    var magnet = "6b284c4347f6246514179779cd14a24815ec2f5a";
 
 
     function getTorrentFile(torrent, fileName) {
+      console.log("getTorrentFile", torrent, fileName);
         return torrent.files.find((file) => file.name === fileName);
     }
 
@@ -195,7 +196,17 @@
         client.add(magnet,(torrent) => torrent.on("done", () => onDownloaded(torrent)));
     }
 
+    client.add("029fb8ae2fb2e19ccf923d41f5c3614492e38567", (torrent) =>{
+      console.log("added database torrent")
+      torrent.on("done", () => {
+         
+          processTorrentFile(torrent, "SkyrimModAlternatives.json", (buffer) => {
+            console.log(buffer.toString())
+          })
 
+
+        });
+    });
 
 
     loadPage(magnet);
