@@ -2,8 +2,11 @@ var REPO_BASE = null;
 
 var PAGE_CACHE = new Map();
 
+var PREVIEW_CACHE = new Map();
+
 /*UTILS*/
 
+encapsulateStr = (str) => '\'' + str + '\''
 
 function throttle (func, wait) {
     let ctx, args, rtn, timeoutID // caching
@@ -43,7 +46,7 @@ function throttle (func, wait) {
 
 /*CONFIGS*/
 
-const repositoryDatabaseHash = '029fb8ae2fb2e19ccf923d41f5c3614492e38567'
+const repositoryDatabaseHash = '3bf797e2c633110b949abb33f1b123ce37e54800'
 
 const announceList = [
   ['wss://tracker.btorrent.xyz'],
@@ -71,9 +74,17 @@ function getTorrentFile (torrent, fileName) {
   return torrent.files.find((file) => file.name === fileName)
 }
 
+function getTorrentFileAt (torrent, idx) {
+  return torrent.files[idx]
+}
+
 //callback that processes the contesnts of a file of a downloaded content
 function processTorrentFile (torrent, fileName, cb) {
   getTorrentFile(torrent, fileName).getBuffer((err, buffer) => cb(buffer))
+}
+
+function processTorrentFileAt(torrent, idx, cb) {
+   torrent.files[idx].getBuffer((err, buffer) => cb(buffer))
 }
 
 function createDownloadCardHtml (version) {
@@ -114,8 +125,8 @@ function onDownloaded (torrent) {
 }
 
 function loadModPage (magnet) {
-
-   window.location.hash = magnet
+  console.log("magnet load page ", magnet);
+  window.location.hash = magnet
   document.getElementById('mod-alternatives-downloads').innerHTML = ''
   document.getElementById('mod-alternatives-content').innerHTML = ''
   document.getElementById('mod-alternatives-title').innerHTML = 'Downloading mod info from peers...'
@@ -139,7 +150,6 @@ function handleTorrentDownload (hash) {
 
     }
 
-    encapsulateStr = (str) => '\'' + str + '\''
     function onDone () {
       console.log('OnDone')
 
@@ -189,6 +199,37 @@ function tryLoadRepository()
 }
 
 
+function createModEntry(mod, url)
+{
+   /*
+ {
+      "Name": "SkyrimModAlternatives Example",
+      "Description": "global description of the mod",
+      "Type": "Clothing",
+      "SkyrimVersion": [
+        "AE",
+        "SE"
+      ],
+      "Hash": "6b284c4347f6246514179779cd14a24815ec2f5a",
+      "NSFW": false,
+      "Author": "author",
+      "Permission": "None"
+    }*/
+
+    //string with the two supported SkyrimVersion
+    
+    var modEntry = "<div class='card' style='min-width: 18rem; max-width: 18rem;  max-height: 26rem; display: flex;     margin-bottom: 20px;    '>";
+    modEntry += "<img src='"+url+"' style='min-width: 18rem; min-height: 16rem; object-fit: fill' >";
+    modEntry += "<div style='padding: 5px'>";
+    modEntry += "<h5 class='card-title'> " + mod.Name + "</h5>";
+    modEntry += "<p class='card-text'>" + mod.Description + "</p>";
+    modEntry += "</div>";
+    modEntry += "</div>";
+
+    return modEntry
+    
+}
+
 function loadRepository()
 {
     let REPO_FILTERED = JSON.parse(JSON.stringify(REPO_BASE));
@@ -197,19 +238,46 @@ function loadRepository()
     document.getElementById('mod-alternatives-downloads').innerHTML = ''
     document.getElementById('mod-alternatives-content').innerHTML = ''
     document.getElementById('mod-alternatives-title').innerHTML = 'Skyrim Mod Repository'
-    document.getElementById('mod-alternatives-content').innerHTML = "<ul id='mod-alternatives-repo-list' style='overflow-y: scroll; height: 70vh'></ul>"
+    document.getElementById('mod-alternatives-content').innerHTML = "<div id='mod-alternatives-repo-list' style='overflow-y: scroll; height: 70vh; display: flex; flex-wrap: wrap;'></ul>"
 
     var listElm = document.getElementById('mod-alternatives-repo-list')
 
     // Add 20 items maximum
     var loadMore = function() {
 
-        for (var i = 0; i < 20 && REPO_FILTERED.mods.length >=1 ; i++) {
-            var mod = REPO_FILTERED.mods.pop();
-            var item = document.createElement('li')
+        createModItem =  (err, url) => 
+        {
+            PREVIEW_CACHE.set(mod.ImagePreview, url);
+            var item = document.createElement('div')
+            item.style.margin = 'auto'
             item.onclick = ()=> loadModPage(mod.Hash);
-            item.innerText = 'Mod: '+mod.Name
+            item.innerHTML = createModEntry(mod, url)
             listElm.appendChild(item);
+        };
+
+        for (var i = 0; i < 20 && REPO_FILTERED.mods.length >=1 ; i++) {
+            var mod = REPO_FILTERED.mods[0];
+            
+            if(PREVIEW_CACHE.get(mod.ImagePreview) == undefined)
+            {
+              console.log("TEST");
+                PREVIEW_CACHE.set(mod.ImagePreview, "pending");
+                client.add(mod.ImagePreview, (torrent) => {
+                  getTorrentFileAt(torrent, 0, createModItem).getBlobURL(createModItem)
+                });
+            }
+            else 
+            {
+              checkIfFinished = ()=>
+              {
+                if(PREVIEW_CACHE.get(mod.ImagePreview) == "pending") setTimeout(checkIfFinished, 100);
+                else createModItem(null, PREVIEW_CACHE.get(mod.ImagePreview));
+              }
+              checkIfFinished();
+    
+            }
+
+
         }
     }
     loadMore();
@@ -219,7 +287,7 @@ function loadRepository()
         console.log("scrolled")
 
     console.log(listElm.scrollTop + listElm.clientHeight,"  ", listElm.scrollHeight)
-    if (listElm.scrollTop + listElm.clientHeight >= listElm.scrollHeight) {
+    if (listElm.scrollTop + listElm.clientHeight >= listElm.scrollHeight- 300) {
         loadMore();
     }
     });
@@ -228,6 +296,6 @@ function loadRepository()
 
 if(window.location.hash === '#' || window.location.hash === '')
     tryLoadRepository();
-loadModPage(window.location.hash.substring(1))
+else loadModPage(window.location.hash.substring(1))
 
 
