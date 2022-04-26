@@ -261,7 +261,7 @@ function loadModView (REPO_FILTERED) {
   const loadMore = function () {
     
     for (let i = 0; i < 20 && REPO_FILTERED.length >= 1; i++) {
-      var mod = REPO_FILTERED.pop();
+        let mod = REPO_FILTERED.pop();
         const imageIdentifier = "image-"+mod.ImagePreview;
 
         const item = document.createElement('div')
@@ -274,7 +274,10 @@ function loadModView (REPO_FILTERED) {
         {
           PREVIEW_CACHE.set(mod.ImagePreview, url)
           document.querySelectorAll('[id='+imageIdentifier+']').forEach(element=> 
-            element.src = url
+            {
+              console.log(element, imageIdentifier);
+              element.src = url
+            }
           );
         }
 
