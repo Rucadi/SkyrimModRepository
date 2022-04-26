@@ -1,0 +1,20 @@
+{
+    "name": "Unofficial Skyrim Special Edition Patch",
+    "NSFW": false,
+    "description": "A comprehensive bugfixing mod for The Elder Scrolls V: Skyrim - Special Edition",
+    "permission": " You may upload unmodified copies of the latest version of the patch to any website of your choosing so long as the documentation is retained as-is.",
+    "type": "Bugfix",
+    "versions": [
+        {
+            "name": "USSEP",
+            "gameVersion" : "SE",
+            "version": "4.2.6a",
+            "description": "USSEP Full Patch",
+            "hash": "d09b972082830f89649a3ac66c610ee6d9637b9d",
+            "NexusId" : "266",
+            "NexusFileId" : "1704",
+            "LoversId" : "",
+            "LoversFileId" : ""
+        }
+    ]
+}
