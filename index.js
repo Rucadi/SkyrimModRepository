@@ -1,10 +1,12 @@
 let REPO_BASE = null
-
-const PAGE_CACHE = new Map()
-
-const PREVIEW_CACHE = new Map()
+let REPO_FILTERED = null
+let PAGE_CACHE = new Map()
+let PREVIEW_CACHE = new Map()
 
 /* UTILS */
+
+
+let current_repository = document.getElementById('mod-database-repo').value
 
 encapsulateStr = (str) => '\'' + str + '\''
 
@@ -46,7 +48,7 @@ const saveData = (function () {
 
 /* CONFIGS */
 
-const repositoryDatabaseHash = '3bf797e2c633110b949abb33f1b123ce37e54800'
+let repositoryDatabaseHash = '3bf797e2c633110b949abb33f1b123ce37e54800'
 
 const announceList = [
   ['wss://tracker.btorrent.xyz'],
@@ -60,7 +62,7 @@ globalThis.WEBTORRENT_ANNOUNCE = announceList
     return url.indexOf('wss://') === 0 || url.indexOf('ws://') === 0
   })
 
-const client = new WebTorrent({
+let client = new WebTorrent({
   tracker: {
     rtcConfig: {
       ...SimplePeer.config
@@ -170,22 +172,52 @@ function handleTorrentDownload (hash) {
   client.add(hash, onTorrentAdded)
 }
 
-function tryLoadRepository () {
+function tryLoadRepository () 
+{
+  //If we changed repositories, reinitialize
+  let new_repository = document.getElementById('mod-database-repo').value;
+  if(new_repository != current_repository)
+  {
+    REPO_BASE = null
+    REPO_FILTERED = null
+    PAGE_CACHE = new Map()
+    PREVIEW_CACHE = new Map()
+  
+    if(client != null) client.destroy();
+     client = new WebTorrent({
+      tracker: {
+        rtcConfig: {
+          ...SimplePeer.config
+        }
+      }
+    })
+
+    current_repository = new_repository;
+  }
+
+  document.getElementById('mod-alternatives-downloads').innerHTML = ''
+  document.getElementById('mod-alternatives-content').innerHTML = ''
+  document.getElementById('mod-alternatives-title').innerHTML = 'Skyrim Mod Repository'
+  document.getElementById('mod-alternatives-content').innerHTML = "<input type='text' style='width:100%' id='mod-alternatives-search' onkeypress='filterMods()'/> <div id='mod-alternatives-repo-list' style='overflow-y: scroll; height: 70vh; display: flex; flex-wrap: wrap;'></div>"
+
   if (REPO_BASE === null) {
-    client.add(repositoryDatabaseHash, (torrent) => {
+    client.add(document.getElementById('mod-database-repo').value, (torrent) => {
       console.log('added database torrent')
       torrent.on('done', () => {
         processTorrentFile(torrent, 'SkyrimModAlternatives.json', (buffer) => {
           console.log(buffer.toString())
           REPO_BASE = JSON.parse(buffer)
-          loadRepository()
+          loadModView(JSON.parse(JSON.stringify(REPO_BASE.mods)))
         })
       })
     })
-  } else loadRepository()
+  } else 
+    {
+      loadModView(JSON.parse(JSON.stringify(REPO_BASE.mods)))
+    }
 }
 
-function createModEntry (mod, url) {
+function createModEntry (mod, imageIdentifier) {
   /*
  {
       "Name": "SkyrimModAlternatives Example",
@@ -204,7 +236,7 @@ function createModEntry (mod, url) {
   // string with the two supported SkyrimVersion
 
   let modEntry = "<div class='card' style='min-width: 18rem; max-width: 18rem;  max-height: 26rem; display: flex;     margin-bottom: 20px;    '>"
-  modEntry += "<img src='" + url + "' style='min-width: 18rem; min-height: 16rem; object-fit: fill' >"
+  modEntry += "<img  id='" + imageIdentifier + "' style='min-width: 18rem; min-height: 16rem; object-fit: fill' >"
   modEntry += "<div style='padding: 5px'>"
   modEntry += "<h5 class='card-title'> " + mod.Name + '</h5>'
   modEntry += "<p class='card-text'>" + mod.Description + '</p>'
@@ -214,41 +246,50 @@ function createModEntry (mod, url) {
   return modEntry
 }
 
-function loadRepository () {
-  const REPO_FILTERED = JSON.parse(JSON.stringify(REPO_BASE))
-  REPO_FILTERED.mods.reverse()
 
-  document.getElementById('mod-alternatives-downloads').innerHTML = ''
-  document.getElementById('mod-alternatives-content').innerHTML = ''
-  document.getElementById('mod-alternatives-title').innerHTML = 'Skyrim Mod Repository'
-  document.getElementById('mod-alternatives-content').innerHTML = "<div id='mod-alternatives-repo-list' style='overflow-y: scroll; height: 70vh; display: flex; flex-wrap: wrap;'></ul>"
+function filterMods()
+{
+  loadModView(JSON.parse(JSON.stringify(REPO_BASE.mods)).filter((mod) => mod.Name.toLowerCase().includes(document.getElementById('mod-alternatives-search').value.toLowerCase())).reverse());
+}
 
+
+
+function loadModView (REPO_FILTERED) {
   const listElm = document.getElementById('mod-alternatives-repo-list')
+  listElm.innerHTML = ''
 
-  // Add 20 items maximum
   const loadMore = function () {
-    createModItem = (err, url) => {
-      PREVIEW_CACHE.set(mod.ImagePreview, url)
-      const item = document.createElement('div')
-      item.style.margin = 'auto'
-      item.onclick = () => loadModPage(mod.Hash)
-      item.innerHTML = createModEntry(mod, url)
-      listElm.appendChild(item)
-    }
+    
+    for (let i = 0; i < 20 && REPO_FILTERED.length >= 1; i++) {
+      var mod = REPO_FILTERED[0];
+        const imageIdentifier = "image-"+mod.ImagePreview;
 
-    for (let i = 0; i < 20 && REPO_FILTERED.mods.length >= 1; i++) {
-      var mod = REPO_FILTERED.mods[0]
+        const item = document.createElement('div')
+        item.style.margin = 'auto'
+        item.onclick = () => loadModPage(mod.Hash)
+        item.innerHTML = createModEntry(mod, imageIdentifier)
+        listElm.appendChild(item)
+      
+        function imageItemSubs(_, url)
+        {
+          PREVIEW_CACHE.set(mod.ImagePreview, url)
+          document.querySelectorAll('[id='+imageIdentifier+']').forEach(element=> 
+            element.src = url
+          );
+        }
 
       if (PREVIEW_CACHE.get(mod.ImagePreview) == undefined) {
-        console.log('TEST')
         PREVIEW_CACHE.set(mod.ImagePreview, 'pending')
-        client.add(mod.ImagePreview, (torrent) => {
-          getTorrentFileAt(torrent, 0, createModItem).getBlobURL(createModItem)
+        client.add(mod.ImagePreview, (torrent) => 
+        {
+          torrent.on('done', () =>{
+            getTorrentFileAt(torrent, 0).getBlobURL(imageItemSubs)
+          });
         })
       } else {
         checkIfFinished = () => {
           if (PREVIEW_CACHE.get(mod.ImagePreview) == 'pending') setTimeout(checkIfFinished, 100)
-          else createModItem(null, PREVIEW_CACHE.get(mod.ImagePreview))
+          else imageItemSubs(null, PREVIEW_CACHE.get(mod.ImagePreview))
         }
         checkIfFinished()
       }
@@ -258,9 +299,8 @@ function loadRepository () {
 
   // Detect when scrolled to bottom.
   listElm.addEventListener('scroll', function () {
-    console.log('scrolled')
 
-    console.log(listElm.scrollTop + listElm.clientHeight, '  ', listElm.scrollHeight)
+   //console.log(listElm.scrollTop + listElm.clientHeight, '  ', listElm.scrollHeight)
     if (listElm.scrollTop + listElm.clientHeight >= listElm.scrollHeight - 300) {
       loadMore()
     }
